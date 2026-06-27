@@ -28,10 +28,11 @@ def _strip_json_fences(text: str) -> str:
 
 
 async def claude_text(prompt: str, session_id: str, system: str | None = None) -> str:
-    if not EMERGENT_LLM_KEY:
+    key = os.environ.get("EMERGENT_LLM_KEY") or EMERGENT_LLM_KEY
+    if not key:
         raise RuntimeError("EMERGENT_LLM_KEY missing from backend .env")
     chat = LlmChat(
-        api_key=EMERGENT_LLM_KEY,
+        api_key=key,
         session_id=session_id,
         system_message=system or SYSTEM_PROMPT,
     ).with_model(MODEL_PROVIDER, MODEL_NAME)
