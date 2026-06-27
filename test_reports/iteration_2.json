@@ -1,0 +1,57 @@
+{
+  "summary": "Tested the 3 blank-page bug fixes for Bharat Startup Desk. ErrorBoundary + safe()/arr() + client-side demo fallback successfully prevent UI from blanking on /explore, /dashboard/validator, and /dashboard/trademark. Backend /api/validate/idea and /api/trademark/advice return 200 with real AI within timeout. Backend /api/explore/idea takes ~100s which exceeds the 60s ingress proxy timeout (returns 502 at the edge even though uvicorn returns 200), BUT the frontend catch-block correctly fires its client-side demo fallback so the page still renders with the Demo AI Mode badge — bug fix holds.",
+  "tested_scope": ["backend", "frontend"],
+  "passed": [
+    "POST /api/validate/idea -> 200 with full {verdict.score, strengths, weaknesses, risks, improvements, competitors, market_potential, ...}",
+    "POST /api/trademark/advice -> 200 with full {recommended_classes, suggestions, ip_checklist, estimated_cost, timeline, patent_opportunity}",
+    "POST /api/explore/idea (direct localhost:8001) -> 200 with full ai object incl business_structure, registrations, licenses, gst, trademark, schemes, estimated_cost, risks, first_10_steps, roadmap_12_months (12 entries). _demo_ai=false (real AI).",
+    "GET /api/meta/all -> states+industries non-empty",
+    "Frontend /explore: filled form (idea/Manufacturing/Karnataka), clicked generate-btn. Got 502 from ingress (backend exceeded 60s) → frontend catch fired client demo → disclaimer-banner, demo-ai-badge, Business structure, 12-month roadmap ALL rendered. NO blank page. NO error boundary visible.",
+    "Frontend /dashboard/validator (after explore-demo-btn loaded NeuralForge demo): validate-btn returned real AI; [data-testid=verdict-score] shows '7.2/10'; no error boundary; page fully rendered.",
+    "Frontend /dashboard/trademark: brand 'RivetPro' generated real AI advice; 3 class cards (Class 9, 42, 35), IP checklist, Filing tips, cost, timeline, patent opp all rendered; no error boundary; no blank."
+  ],
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/explore/idea",
+        "issue": "Endpoint takes ~100s (single Claude Sonnet 4.5 call for the full 10-section + 12-month roadmap). The Kubernetes/Cloudflare ingress times out at ~60s and returns 502 to the client even though uvicorn eventually returns 200. End user therefore never sees a real-AI explore result on production — they always get the client-side demo fallback. Frontend handles this correctly so the UI does not blank, but the real AI response is effectively unreachable through the public URL.",
+        "priority": "MEDIUM"
+      },
+      {
+        "endpoint": "POST /api/trademark/advice",
+        "issue": "Pydantic field is `startup_name`. PRD/spec earlier referenced `brand_name` — frontend correctly sends `startup_name` now, so this is consistent but worth confirming with main agent.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ai_fallback_endpoints.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "MEDIUM: Reduce /api/explore/idea latency or split the work. Current ~100s call exceeds the 60s ingress timeout, so on production the real AI result is never reachable; users always see the client demo fallback. Options: (a) shorter prompt / max_tokens cap, (b) split into 2-3 parallel claude_text calls and merge, (c) stream response, (d) add a server-side timeout that returns the demo earlier so the 200 is delivered before the proxy gives up.",
+    "Confirm /api/trademark/advice payload field (`startup_name` vs `brand_name`) — frontend uses `startup_name` and backend accepts it; just verify this is the intended contract."
+  ],
+  "critical_code_review_comments": [
+    "ErrorBoundary.safe() returns JSON.stringify for unknown objects — fine as last-resort but could surface ugly text to users; current code does check name/title/text/label/value/summary first which is good.",
+    "Explore.jsx hard-coded client demo is ~50 lines inside the catch block; consider extracting to a constant similar to Trademark.CLIENT_DEMO / IdeaValidator.CLIENT_DEMO for consistency.",
+    "Backend /api/explore/idea catches AI failures and returns demo, but does NOT enforce a wall-clock timeout on claude_text(). Add asyncio.wait_for(..., timeout=50) so the backend itself delivers the demo before the 60s ingress timeout fires; this would make _demo_ai=true reach the client through the public URL instead of via the frontend's 502 catch.",
+    "App.js wraps every route in ErrorBoundary via guard() AND also wraps the entire Routes block in another ErrorBoundary. Redundant but harmless."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ai_fallback_endpoints.py (new)"
+  ],
+  "success_rate": {"backend": "explore=ingress-timeout 502 / direct 200; validate=200; trademark=200; meta=200 (3/4 endpoints fully pass through public URL)", "frontend": "100% — all 3 target pages render without crashing, demo fallback works"},
+  "test_credentials": "N/A — no auth in this app",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The blank-page fix is working end-to-end. The remaining concern is the 60s ingress timeout on /api/explore/idea — if main agent shortens the prompt or adds asyncio.wait_for, retest by curling the public URL `https://startup-desk-india.preview.emergentagent.com/api/explore/idea` with the manufacturing payload and verifying HTTP 200 in <60s. UI verification can be done with the existing playwright flow.",
+  "rca of the issue": "Original blank-page crash root cause: LLM occasionally returned shapes that differed from the expected schema (e.g., a plain string where the UI expected {class, covers}, or an object where it expected a string). React then threw 'Objects are not valid as React child' inside .map() rendering, which unmounted the entire route tree (no ErrorBoundary at the time). Fix verified: (1) safe() + arr() coerce any shape to a renderable child, (2) ErrorBoundary on every route catches anything that still slips through, (3) try/catch on every API call sets a guaranteed-shaped client demo so UI always has data, (4) backend wraps the AI call in try/except and returns _demo_ai content with HTTP 200. Confirmed end-to-end: even when the public URL returns 502 (ingress timeout on the slow explore endpoint), the frontend catches the axios error and still shows the demo guidance — page never blanks."
+}

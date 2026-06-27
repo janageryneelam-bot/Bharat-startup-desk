@@ -148,8 +148,10 @@ async def explore_idea_endpoint(body: ExploreReq) -> Dict[str, Any]:
     try:
         result = await ai_service.explore_idea(body.idea, body.industry, body.state, body.investment, session_id)
     except Exception as e:
-        logger.exception("explore_idea failed")
-        raise HTTPException(500, f"AI generation failed: {e}")
+        logger.exception("explore_idea failed — using demo fallback")
+        import demo_ai
+        result = demo_ai.explore_idea_demo(body.idea, body.industry, body.state, body.investment)
+        result["_demo_ai"] = True
 
     # also include static recommendations
     schemes = static_data.recommend_schemes(body.state, body.industry, "Idea")
@@ -298,24 +300,30 @@ async def licenses(industry: Optional[str] = None, state: Optional[str] = None):
 
 # ---------- Trademark & IP ----------
 @api.post("/trademark/advice")
-async def trademark_endpoint(body: TrademarkReq):
+async def trademark_endpoint(body: TrademarkReq) -> Dict[str, Any]:
     session_id = f"tm-{uuid.uuid4()}"
     try:
         return await ai_service.trademark_advice(body.startup_name, body.industry, session_id)
     except Exception as e:
-        logger.exception("trademark failed")
-        raise HTTPException(500, f"AI generation failed: {e}")
+        logger.exception("trademark failed — using demo fallback")
+        import demo_ai
+        result = demo_ai.trademark_demo(body.startup_name, body.industry)
+        result["_demo_ai"] = True
+        return result
 
 
 # ---------- Idea Validator ----------
 @api.post("/validate/idea")
-async def validate_idea_endpoint(body: IdeaValidateReq):
+async def validate_idea_endpoint(body: IdeaValidateReq) -> Dict[str, Any]:
     session_id = f"validate-{uuid.uuid4()}"
     try:
         return await ai_service.validate_idea(body.idea, body.industry, body.state, session_id)
     except Exception as e:
-        logger.exception("validate failed")
-        raise HTTPException(500, f"AI generation failed: {e}")
+        logger.exception("validate failed — using demo fallback")
+        import demo_ai
+        result = demo_ai.validate_idea_demo(body.idea, body.industry, body.state)
+        result["_demo_ai"] = True
+        return result
 
 
 # ---------- AI Copilot Chat ----------
