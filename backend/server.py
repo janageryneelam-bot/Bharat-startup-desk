@@ -142,8 +142,9 @@ async def get_demo_startup(startup_id: str):
 
 # ---------- Flow 1: Explore Idea ----------
 @api.post("/explore/idea")
-async def explore_idea_endpoint(body: ExploreReq):
+async def explore_idea_endpoint(body: ExploreReq) -> Dict[str, Any]:
     session_id = f"explore-{uuid.uuid4()}"
+    result: Dict[str, Any] = {}
     try:
         result = await ai_service.explore_idea(body.idea, body.industry, body.state, body.investment, session_id)
     except Exception as e:
@@ -201,6 +202,7 @@ async def generate_plan(profile_id: str):
         return cached["plan"]
 
     session_id = f"plan-{profile_id}"
+    plan: Dict[str, Any] = {}
     try:
         plan = await ai_service.generate_startup_plan(doc, session_id)
     except Exception as e:
@@ -318,8 +320,10 @@ async def validate_idea_endpoint(body: IdeaValidateReq):
 
 # ---------- AI Copilot Chat ----------
 @api.post("/copilot/chat")
-async def copilot_chat(body: CopilotReq):
-    session_id = body.session_id or f"copilot-{uuid.uuid4()}"
+async def copilot_chat(body: CopilotReq) -> Dict[str, Any]:
+    session_id: str = body.session_id or f"copilot-{uuid.uuid4()}"
+    answer: str = ""
+    is_demo: bool = False
     try:
         answer, is_demo = await ai_service.copilot_answer(body.question, body.context or {}, session_id)
     except Exception as e:

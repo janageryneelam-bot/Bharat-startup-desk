@@ -9,6 +9,9 @@ def _pick(ctx: Dict[str, Any], k: str, default=""):
 
 
 def _structure_for(industry: str, turnover: str = "0-25L") -> dict:
+    rec = "Private Limited Company"
+    why = "Default recommendation for Indian startups — limited liability + investor friendly."
+    alt: list[str] = ["LLP"]
     if industry in ["Manufacturing", "Construction & Labour", "Healthcare & Clinic"]:
         rec = "Private Limited Company"
         why = "Manufacturing / labour-intensive / healthcare businesses benefit from limited liability, easier access to bank loans (CGTMSE), and credibility with vendors and government tenders."

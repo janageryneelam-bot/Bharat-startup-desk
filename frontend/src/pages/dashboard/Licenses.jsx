@@ -7,7 +7,7 @@ import { FileText } from "lucide-react";
 export default function Licenses() {
   const { profile } = useProfile();
   const [items, setItems] = useState([]);
-  useEffect(() => { if (profile?.industry) api.get("/licenses", { params: { industry: profile.industry, state: profile.state } }).then(r => setItems(r.data.licenses)); }, [profile?.industry, profile?.state]);
+  useEffect(() => { if (profile?.industry) api.get("/licenses", { params: { industry: profile.industry, state: profile.state } }).then(r => setItems(r.data.licenses)); }, [profile]);
 
   return (
     <div className="space-y-6">
