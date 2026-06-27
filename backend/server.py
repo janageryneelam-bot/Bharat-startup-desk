@@ -321,12 +321,11 @@ async def validate_idea_endpoint(body: IdeaValidateReq):
 async def copilot_chat(body: CopilotReq):
     session_id = body.session_id or f"copilot-{uuid.uuid4()}"
     try:
-        answer = await ai_service.copilot_answer(body.question, body.context or {}, session_id)
+        answer, is_demo = await ai_service.copilot_answer(body.question, body.context or {}, session_id)
     except Exception as e:
         logger.exception("copilot failed")
         raise HTTPException(500, f"AI generation failed: {e}")
 
-    # store message
     await db.chat_messages.insert_one({
         "id": str(uuid.uuid4()),
         "session_id": session_id,
@@ -334,7 +333,7 @@ async def copilot_chat(body: CopilotReq):
         "answer": answer,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    return {"answer": answer, "session_id": session_id}
+    return {"answer": answer, "session_id": session_id, "demo_ai": is_demo}
 
 
 @api.get("/copilot/history/{session_id}")

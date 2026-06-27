@@ -35,9 +35,9 @@ export default function Copilot() {
     setLoading(true);
     try {
       const r = await api.post("/copilot/chat", { question: q, context: profile, session_id: sessionRef.current });
-      setMessages(m => [...m, { role: "ai", text: r.data.answer }]);
+      setMessages(m => [...m, { role: "ai", text: r.data.answer, demo: r.data.demo_ai }]);
     } catch {
-      setMessages(m => [...m, { role: "ai", text: "Sorry, I couldn't fetch a response. Please try again." }]);
+      setMessages(m => [...m, { role: "ai", text: "Showing demo guidance — please try again shortly.", demo: true }]);
     } finally { setLoading(false); }
   };
 
@@ -54,6 +54,8 @@ export default function Copilot() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[80%] rounded-md px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground border border-border"}`}>
+                  {m.demo && <div data-testid="demo-ai-badge" className="inline-block mb-2 text-[10px] font-mono uppercase tracking-wider bg-warning/20 text-foreground border border-warning/40 px-1.5 py-0.5 rounded">Demo AI Mode</div>}
+                  {m.demo && <br/>}
                   {m.text}
                 </div>
               </div>
