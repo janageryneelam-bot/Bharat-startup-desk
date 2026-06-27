@@ -1,0 +1,53 @@
+{
+  "summary": "Backend smoke test for Bharat Startup Desk. All static/data/CRUD endpoints (16/16 non-AI tests) pass. ALL AI-powered endpoints fail with single root cause: ai_service.py captures EMERGENT_LLM_KEY at module-import time BEFORE server.py calls load_dotenv(), so the key is None even though it exists in /app/backend/.env.",
+  "tested_scope": ["backend"],
+  "passed": [
+    "GET /api/ -> 200 {app: Bharat Startup Desk, status: ok}",
+    "GET /api/meta/all -> states=36, industries=20, stages=6, company_types=7",
+    "GET /api/meta/states -> 36 states returned",
+    "GET /api/demo/startups -> {startups: [3]} with ids demo-ai-saas, demo-d2c-skincare, demo-mfg",
+    "GET /api/demo/startups/demo-ai-saas -> NeuralForge AI, AI / SaaS",
+    "GET /api/schemes -> 10 schemes",
+    "GET /api/schemes?state=Karnataka&industry=AI / SaaS&stage=Idea -> 4 filtered",
+    "GET /api/schemes/karnataka-elevate -> Karnataka ELEVATE",
+    "GET /api/state/Karnataka -> all keys present (policies, grants, subsidies, incentives, registrations, professional_tax, highlight)",
+    "GET /api/licenses?industry=Manufacturing -> 10 incl. Factory License & Pollution Control NOC",
+    "POST /api/profiles -> profile created with uuid, persisted to MongoDB",
+    "GET /api/profiles/{id} -> profile returned",
+    "GET /api/compliance/{id} -> 13 items with due_date/status/penalty/documents + summary {completed:2, upcoming:10, overdue:1}; all 3 statuses present (status computed against current date)",
+    "GET /api/admin/datasets -> {schemes:10, licenses:13, states_with_benefits:5, compliances:10, demo_startups:3}",
+    "POST /api/admin/schemes -> {status: ok}, custom scheme persisted",
+    "GET /api/admin/schemes -> {static:10, custom:1} including the newly added custom-test",
+    "GET /api/copilot/history/{session_id} -> 200 {messages:[]}"
+  ],
+  "failed": [
+    {
+      "area": "AI integration (ALL AI endpoints)",
+      "issue": "EMERGENT_LLM_KEY captured as None at ai_service.py module import time. Root cause: in /app/backend/server.py the line `import ai_service` (line 15) executes BEFORE `load_dotenv(ROOT_DIR / '.env')` (line 18). ai_service.py line 10 reads `EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')` at import, capturing None permanently. The key IS present in /app/backend/.env (sk-emergent-f7f19Da71F42703145).",
+      "evidence": "Every AI endpoint returns 500 with detail: 'AI generation failed: EMERGENT_LLM_KEY missing from backend .env'. Verified on: POST /api/explore/idea, POST /api/profiles/{id}/plan, POST /api/registered/lookup, POST /api/validate/idea, POST /api/copilot/chat. Backend log: 'RuntimeError: EMERGENT_LLM_KEY missing from backend .env' at ai_service.py:32. Earlier in log also: SyntaxError at ai_service.py:134 (unterminated string) — appears to have been hot-reload-fixed since, but file should be reviewed.",
+      "priority": "HIGH"
+    },
+    {
+      "area": "POST /api/registered/lookup",
+      "issue": "Returns 500 (same EMERGENT_LLM_KEY root cause — endpoint internally calls AI). Therefore preview_badge='Demo Public Data Preview' contract NOT verified.",
+      "evidence": "Response: {\"detail\": \"AI generation failed: EMERGENT_LLM_KEY missing from backend .env\"}",
+      "priority": "HIGH"
+    },
+    {
+      "area": "POST /api/trademark/advice schema mismatch (minor secondary)",
+      "issue": "Spec/PRD says payload uses brand_name, but Pydantic model requires field `startup_name`. Confirm intended field name. (Would still fail due to AI key issue once schema is matched.)",
+      "evidence": "422 response: {type: missing, loc: [body, startup_name], msg: Field required}",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "FIX (HIGH): In /app/backend/server.py move `load_dotenv(ROOT_DIR / '.env')` to BEFORE `import ai_service` (and `import data`). Simplest fix: load dotenv at the very top of the file right after `from dotenv import load_dotenv` (lines 3-4), then do the data/ai_service imports. Alternative: change ai_service.py to read EMERGENT_LLM_KEY inside the claude_text() function instead of at module level.",
+    "REVIEW (HIGH): /app/backend/ai_service.py line 134 had a SyntaxError (unterminated string literal) earlier in logs. Verify the file is currently syntactically clean (it appears to have been reloaded successfully, but please grep/review).",
+    "CLARIFY (LOW): Confirm correct field name for POST /api/trademark/advice (brand_name vs startup_name) and align with frontend/PRD.",
+    "RETEST: After the dotenv-ordering fix, retest the 5 AI endpoints: /api/explore/idea, /api/profiles/{id}/plan (incl. caching on 2nd call), /api/registered/lookup, /api/validate/idea, /api/copilot/chat + /api/copilot/history/{id}."
+  ],
+  "success_rate": {"backend": "70% (17/24 endpoints pass; 5 AI endpoints + registered/lookup + trademark schema fail — all blocked by single env-loading bug)", "frontend": "not tested"},
+  "retest_needed": true,
+  "full_testing_deferred": true,
+  "test_credentials": "N/A — no auth in this app per user choice"
+}

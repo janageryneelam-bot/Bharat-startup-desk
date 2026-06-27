@@ -1,56 +1,50 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-import { HOME } from "@/constants/testIds";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "@/lib/theme";
+import { ProfileProvider } from "@/lib/profile";
+import { Toaster } from "@/components/ui/sonner";
+import Landing from "@/pages/Landing";
+import Explore from "@/pages/Explore";
+import Onboarding from "@/pages/Onboarding";
+import RegisterBusiness from "@/pages/RegisterBusiness";
+import DashboardLayout from "@/pages/dashboard/DashboardLayout";
+import Overview from "@/pages/dashboard/Overview";
+import Compliance from "@/pages/dashboard/Compliance";
+import Schemes from "@/pages/dashboard/Schemes";
+import StateIntel from "@/pages/dashboard/StateIntel";
+import Licenses from "@/pages/dashboard/Licenses";
+import Trademark from "@/pages/dashboard/Trademark";
+import Roadmap from "@/pages/dashboard/Roadmap";
+import Copilot from "@/pages/dashboard/Copilot";
+import IdeaValidator from "@/pages/dashboard/IdeaValidator";
+import Admin from "@/pages/Admin";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
+export default function App() {
   return (
-    <div>
-      <header className="App-header">
-        <a
-          data-testid={HOME.emergentLink}
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <ThemeProvider>
+      <ProfileProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/register-business" element={<RegisterBusiness />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<Overview />} />
+              <Route path="compliance" element={<Compliance />} />
+              <Route path="schemes" element={<Schemes />} />
+              <Route path="state" element={<StateIntel />} />
+              <Route path="licenses" element={<Licenses />} />
+              <Route path="trademark" element={<Trademark />} />
+              <Route path="roadmap" element={<Roadmap />} />
+              <Route path="copilot" element={<Copilot />} />
+              <Route path="validator" element={<IdeaValidator />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+          <Toaster position="top-right" richColors />
+        </BrowserRouter>
+      </ProfileProvider>
+    </ThemeProvider>
   );
 }
-
-export default App;
