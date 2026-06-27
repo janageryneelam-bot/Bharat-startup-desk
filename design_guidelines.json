@@ -1,0 +1,125 @@
+{
+  "project_name": "Bharat Startup Desk",
+  "theme": {
+    "primary_archetype": "Archetype 4: Swiss & High-Contrast (with Archetype 1 Organic Indian color accents)",
+    "mode": "Light/Dark Toggle Support",
+    "rationale": "High-trust, premium enterprise feel like Stripe/Vercel, but deeply rooted in an Indian identity through color psychology (Saffron, Indigo, Emerald) rather than generic tech blue. Avoids purple/teal."
+  },
+  "colors": {
+    "light_mode": {
+      "background": "#FDFCF8",
+      "surface": "#FFFFFF",
+      "text_primary": "#0F172A",
+      "text_secondary": "#475569",
+      "border": "#E2E8F0",
+      "primary": "#E85D04",
+      "primary_hover": "#DC2F02",
+      "success": "#16A34A",
+      "warning": "#EAB308",
+      "danger": "#DC2626"
+    },
+    "dark_mode": {
+      "background": "#0B0D17",
+      "surface": "#15192B",
+      "text_primary": "#F8FAFC",
+      "text_secondary": "#94A3B8",
+      "border": "#1E293B",
+      "primary": "#F48C06",
+      "primary_hover": "#FFBA08",
+      "success": "#22C55E",
+      "warning": "#FACC15",
+      "danger": "#EF4444"
+    }
+  },
+  "typography": {
+    "font_families": {
+      "headings": "Cabinet Grotesk",
+      "body": "Manrope",
+      "mono": "IBM Plex Mono"
+    },
+    "hierarchy": {
+      "h1": "text-5xl md:text-6xl tracking-tighter font-bold",
+      "h2": "text-3xl md:text-4xl tracking-tight font-semibold",
+      "h3": "text-xl md:text-2xl font-medium",
+      "body": "text-base leading-relaxed",
+      "labels": "text-xs uppercase tracking-[0.2em] font-semibold"
+    }
+  },
+  "layout_spacing": {
+    "philosophy": "Generous spacing. The Swiss Grid approach. Tension through asymmetry on landing, dense functional grids for dashboard.",
+    "container_padding": "px-6 md:px-12 lg:px-24",
+    "section_gap": "py-24 md:py-32",
+    "dashboard_grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "borders": "1px solid border-border",
+    "border_radius": "rounded-md"
+  },
+  "components": {
+    "buttons": "Flat, no gradient. Hard edges or slight radius (rounded-md). High contrast text. Strict hover transitions.",
+    "cards": "Flat background matching surface, 1px border, subtle shadow-sm. Hover: translate-y-[-2px] and shadow-md.",
+    "inputs": "Shadcn based. Minimal, 1px border. Focus ring: 2px solid primary color.",
+    "glassmorphism": "Used ONLY for sticky top navigation. backdrop-blur-xl bg-white/70 (light) or bg-[#0B0D17]/80 (dark) with 1px bottom border.",
+    "compliance_calendar": "Dense data view. Color-coded badges (Green/Yellow/Red) in a strictly aligned grid.",
+    "health_score_gauge": "SVG-based radial progress. High-contrast colors depending on score tier.",
+    "disclaimer_banner": "Top of page. Archetype 4 High-contrast yellow/black or monochrome to signify 'Demo Mode'.",
+    "ai_copilot": "Floating bottom-right or collapsible right-sidebar. Chat bubbles must avoid gradients; use solid surface colors with sharp corners on the origin side."
+  },
+  "motion": {
+    "hover": "transition-transform duration-200 ease-out",
+    "list_stagger": "framer-motion staggerChildren 0.1s. Entrance: opacity 0, y 10 -> opacity 1, y 0.",
+    "page_transition": "Fade in, subtle scale-up (0.98 -> 1.0) on mount."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "style": "Stroke width 1.5, simple, crisp."
+  },
+  "testing": {
+    "attributes": "All interactive elements MUST have `data-testid` (e.g., `data-testid=\"explore-demo-btn\"`, `data-testid=\"health-score-gauge\"`)."
+  },
+  "media": {
+    "hero": [
+      {
+        "url": "https://images.pexels.com/photos/7414216/pexels-photo-7414216.jpeg",
+        "description": "Indian founders collaborating in a modern office setup. Use for hero section or 'About Us' to establish trust.",
+        "category": "hero_founders"
+      },
+      {
+        "url": "https://images.pexels.com/photos/19747906/pexels-photo-19747906.jpeg",
+        "description": "Confident founder working at a desk. Good for the MVP flow intro.",
+        "category": "founder_portrait"
+      }
+    ],
+    "dashboard_placeholders": [
+      {
+        "url": "https://images.pexels.com/photos/27141316/pexels-photo-27141316.jpeg",
+        "description": "Abstract futuristic data UI. Use for the 'AI Copilot' visual or data intelligence engine background.",
+        "category": "abstract_data"
+      }
+    ],
+    "logos": [
+      {
+        "url": "https://images.pexels.com/photos/21898300/pexels-photo-21898300.jpeg",
+        "description": "Partner / Integration logo placeholder.",
+        "category": "partner_logo"
+      },
+      {
+        "url": "https://images.pexels.com/photos/26576975/pexels-photo-26576975.jpeg",
+        "description": "Minimalist brand logo placeholder.",
+        "category": "partner_logo"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Use Vite + React + Tailwind CSS + Shadcn UI.",
+    "Strictly follow the color palette. Avoid default Tailwind blues/purples.",
+    "Implement the UI using Cabinet Grotesk for headings and Manrope for body text. Inject these via Google Fonts or standard imports.",
+    "Landing page MUST have 'Explore Demo' button prominently displayed with data-testid.",
+    "Build three distinct onboarding flows: Idea (No login), MVP, Registered Business.",
+    "Registered business flow must navigate to the Dashboard pre-populated with simulated data.",
+    "Add a persistent 'Demo Mode' disclaimer banner at the top of the dashboard.",
+    "Dashboard layout MUST have a left sidebar navigation and a main content area.",
+    "Use a 'Control Room Grid' for the compliance dashboard and health score.",
+    "Implement a Dark/Light mode toggle in the header/sidebar.",
+    "Ensure EVERY button, input, and clickable card has a `data-testid` attribute.",
+    "DO NOT use placeholder text or generic grey boxes for images. Use the provided media URLs."
+  ]
+}
