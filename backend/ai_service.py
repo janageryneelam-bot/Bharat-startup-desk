@@ -2,6 +2,7 @@
 import os
 import json
 import re
+import asyncio
 import logging
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import demo_ai
@@ -10,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 MODEL_PROVIDER = "anthropic"
 MODEL_NAME = "claude-sonnet-4-5-20250929"
+# Wall-clock cap so we always return BEFORE the 60s ingress timeout.
+LLM_TIMEOUT_SECS = 45
 
 SYSTEM_PROMPT = """You are "Bharat Startup Desk", an expert AI co-founder for Indian founders, MSMEs, and startups.
 Deeply knowledgeable about Indian business law, GST, MCA filings, MSME, Startup India, DPIIT, state-level schemes, licenses, trademarks, and funding.
@@ -36,7 +39,10 @@ async def _claude_text(prompt: str, session_id: str, system: str | None = None) 
         session_id=session_id,
         system_message=system or SYSTEM_PROMPT,
     ).with_model(MODEL_PROVIDER, MODEL_NAME)
-    response = await chat.send_message(UserMessage(text=prompt))
+    response = await asyncio.wait_for(
+        chat.send_message(UserMessage(text=prompt)),
+        timeout=LLM_TIMEOUT_SECS,
+    )
     return response if isinstance(response, str) else str(response)
 
 
@@ -56,24 +62,22 @@ async def _claude_json(prompt: str, session_id: str) -> dict:
 # ---------- Public API with automatic Demo AI fallback ----------
 
 async def explore_idea(idea: str, industry: str, state: str, investment: str, session_id: str) -> dict:
-    prompt = f"""Founder wants to start in India.
-IDEA: {idea}
-INDUSTRY: {industry}
-STATE: {state}
-INVESTMENT: {investment}
+    prompt = f"""Indian founder. IDEA: {idea} | INDUSTRY: {industry} | STATE: {state} | INVESTMENT: {investment}
 
-Produce detailed JSON with keys:
-- business_structure: {{"recommended","why","alternatives":[]}}
-- registrations: []
-- licenses: []
-- gst: {{"applicable":bool,"explanation"}}
-- trademark: {{"recommended":bool,"classes":[],"rationale"}}
-- schemes: [5 strings, India-specific]
-- estimated_cost: {{"setup","monthly","breakdown":[{{"item","amount"}}]}}
-- risks: [4-6 strings]
-- first_10_steps: [exactly 10 actionable]
-- roadmap_12_months: [12 of {{"month":N,"focus","milestones":[]}}]
-Personalize to {state}."""
+Return concise JSON. Be specific to {state}. Keep prose minimal.
+{{
+ "business_structure":{{"recommended":"","why":"","alternatives":[]}},
+ "registrations":[],
+ "licenses":[],
+ "gst":{{"applicable":true,"explanation":""}},
+ "trademark":{{"recommended":true,"classes":[],"rationale":""}},
+ "schemes":["5 India-specific schemes, one line each"],
+ "estimated_cost":{{"setup":"","monthly":"","breakdown":[{{"item":"","amount":""}}]}},
+ "risks":["4-6 concrete risks"],
+ "first_10_steps":["exactly 10 actionable steps"],
+ "roadmap_12_months":[{{"month":1,"focus":"","milestones":["1-2 short items"]}}]
+}}
+roadmap_12_months MUST have 12 entries, each with 1-2 short milestones only."""
     try:
         result = await _claude_json(prompt, session_id)
         result["_demo_ai"] = False
