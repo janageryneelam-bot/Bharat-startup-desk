@@ -14,7 +14,7 @@ export default function Schemes() {
     if (!profile) return;
     api.get("/schemes", { params: { state: profile.state, industry: profile.industry, stage: profile.stage } })
       .then(r => setSchemes(r.data.schemes));
-  }, [profile]);
+  }, [profile, setSchemes]);
 
   return (
     <div className="space-y-6">

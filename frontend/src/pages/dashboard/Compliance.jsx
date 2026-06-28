@@ -16,7 +16,7 @@ export default function Compliance() {
   const [data, setData] = useState(null);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => { if (profile?.id) api.get(`/compliance/${profile.id}`).then(r => setData(r.data)); }, [profile]);
+  useEffect(() => { if (profile?.id) api.get(`/compliance/${profile.id}`).then(r => setData(r.data)); }, [profile, setData]);
 
   if (!data) return <div className="grid place-items-center py-20 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading compliance…</div>;
 

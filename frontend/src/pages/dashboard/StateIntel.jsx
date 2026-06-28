@@ -7,7 +7,7 @@ import { MapPin } from "lucide-react";
 export default function StateIntel() {
   const { profile } = useProfile();
   const [data, setData] = useState(null);
-  useEffect(() => { if (profile?.state) api.get(`/state/${encodeURIComponent(profile.state)}`).then(r => setData(r.data)); }, [profile]);
+  useEffect(() => { if (profile?.state) api.get(`/state/${encodeURIComponent(profile.state)}`).then(r => setData(r.data)); }, [profile, setData]);
 
   if (!data) return null;
 

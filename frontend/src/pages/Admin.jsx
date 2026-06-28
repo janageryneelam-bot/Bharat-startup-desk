@@ -7,7 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Admin() {
   const [counts, setCounts] = useState(null);
-  useEffect(() => { api.get("/admin/datasets").then(r => setCounts(r.data)); }, []);
+  useEffect(() => { api.get("/admin/datasets").then(r => setCounts(r.data)); }, [setCounts]);
 
   return (
     <div className="min-h-screen bg-background">

@@ -25,7 +25,7 @@ export default function Copilot() {
   const sessionRef = useRef(`copilot-${Date.now()}`);
   const endRef = useRef(null);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, endRef]);
 
   const send = async (text) => {
     const q = (text || input).trim();

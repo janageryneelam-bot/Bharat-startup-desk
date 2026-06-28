@@ -297,86 +297,135 @@ def trademark_demo(name: str, industry: str) -> dict:
     }
 
 
-def copilot_demo(question: str, ctx: dict) -> str:
-    q = (question or "").lower()
+# ---------- Copilot topic handlers (one per topic; keeps copilot_demo simple) ----------
+
+def _topic_gst_penalty(_q: str, _ctx: dict) -> str:
+    return "If you miss GST filing:\n• GSTR-1 / GSTR-3B late fee is ₹50/day (₹20/day for NIL returns), capped at ₹10,000.\n• Interest at 18% p.a. on unpaid tax.\n• 3 consecutive missed returns → GSTIN may be suspended.\n• Input Tax Credit (ITC) blocked till you file.\n\nSet calendar reminders for the 11th and 20th of every month."
+
+def _topic_gst(q: str, ctx: dict) -> str:
+    industry = _pick(ctx, "industry", "")
+    needs_gst = industry in ["D2C / E-commerce", "Beauty & Skincare", "Fashion & Apparel", "FoodTech / F&B", "Manufacturing", "Retail"] or "e-commerce" in q
+    verdict = "GST registration is **recommended** now" if needs_gst else "GST is **not yet mandatory**"
+    return f"{verdict}.\n\n• Goods threshold: ₹40 Lakh turnover\n• Services threshold: ₹20 Lakh\n• Mandatory from Day 1 if: interstate sales, e-commerce (Amazon/Flipkart/Nykaa), reverse-charge applicability.\n\nAlso consider **Udyam registration** (free) for MSME benefits and **Trademark** filing to protect your brand."
+
+def _topic_structure(_q: str, _ctx: dict) -> str:
+    return "For your context, **Private Limited Company** is typically the right choice because:\n\n• Limited liability for founders\n• Required by VCs for equity rounds, ESOPs, SAFE/CCD instruments\n• DPIIT Startup India recognition possible → 3-year tax holiday u/s 80-IAC\n• Easier to add co-founders and investors via share transfer\n\nLLP is good if you have 2-4 partners, no VC plans, and prefer partnership flexibility."
+
+def _topic_udyam(_q: str, _ctx: dict) -> str:
+    return "**Udyam Registration** is the official MSME registration:\n\n• Free, online, takes <1 day on udyamregistration.gov.in\n• Required to access CGTMSE, PMEGP, Mudra, and 50+ MSME schemes\n• 50% subsidy on patent and trademark fees\n• Priority sector lending from banks\n• Protection under MSMED Act for delayed payments (45-day rule)\n\nApply within the first 30 days of incorporation."
+
+def _topic_startup_india(_q: str, _ctx: dict) -> str:
+    return "**DPIIT Startup India Recognition**:\n\n• Apply free at startupindia.gov.in\n• Eligibility: Indian Pvt Ltd / LLP / Partnership < 10 years, turnover < ₹100 Cr, working on innovation/improvement\n• Benefits: 3-year income tax holiday (80-IAC), self-certification on labour & environment laws, ₹4,500 trademark fee (vs ₹9,000), faster patent examination, access to ₹50L Seed Fund\n• Timeline: 5-15 days after submitting incorporation cert + 1-2 page description of innovation"
+
+def _topic_compliance_overview(_q: str, ctx: dict) -> str:
+    emp = _pick(ctx, "employee_count", 0)
+    state = _pick(ctx, "state", "your state")
+    labour = "**Labour**: PF & ESI monthly by 15th, PT state-specific\n" if emp and int(emp or 0) >= 10 else ""
+    return "Your core compliance stack:\n\n**GST**: GSTR-1 (11th monthly), GSTR-3B (20th monthly), GSTR-9 (annual)\n**Income Tax**: ITR-6 (31 Oct), Form 3CD audit, Advance Tax (quarterly)\n**TDS**: Form 24Q/26Q (quarterly), Form 16/16A\n**MCA**: AOC-4 (financials), MGT-7 (annual return), DIR-3 KYC, board meetings\n" + labour + f"**State**: Profession Tax, Shops & Establishments renewal, {state} specific filings"
+
+def _topic_mca(_q: str, _ctx: dict) -> str:
+    return "**MCA annual filings** for a Pvt Ltd company:\n\n• **AOC-4** — financial statements within 30 days of AGM (~30 Oct)\n• **MGT-7** — annual return within 60 days of AGM (~29 Nov)\n• **DIR-3 KYC** — director KYC by 30 Sep every year\n• **DPT-3** — return of deposits (if applicable)\n• **MSME-1** — half-yearly report on dues to MSMEs\n\nPenalty: ₹100/day with no upper cap. Don't skip these."
+
+def _topic_tax_filing(_q: str, _ctx: dict) -> str:
+    return "**Tax filing timeline**:\n\n• **Advance Tax**: 15 Jun (15%), 15 Sep (45%), 15 Dec (75%), 15 Mar (100%)\n• **ITR-6** for companies: 31 Oct of assessment year\n• **TDS** quarterly returns: 31 Jul / 31 Oct / 31 Jan / 31 May\n• **GST annual** GSTR-9: 31 Dec following financial year\n\nIf turnover > ₹1 Cr (or ₹10 Cr if 95% digital), **tax audit u/s 44AB** is mandatory."
+
+def _topic_funding(_q: str, ctx: dict) -> str:
+    state = _pick(ctx, "state", "your state")
+    stage = _pick(ctx, "stage", "your stage")
+    return f"**Funding ladder for {stage} stage**:\n\n1. **Bootstrap / FFF** — friends, family, founder savings\n2. **Government grants** — {_state_schemes(state)[0]}, Startup India Seed Fund (₹20L grant + ₹50L convertible)\n3. **Loans** — Mudra (up to ₹20L), CGTMSE (up to ₹5 Cr, no collateral)\n4. **Angels** — Indian Angel Network, LetsVenture, AngelList India — typical cheque ₹25L-₹2 Cr\n5. **Pre-seed/Seed VCs** — Better Capital, AntlerIndia, SmileGroup, Blume — ₹1-5 Cr\n\nPrepare a 12-slide deck, 3-year financial model, and unit economics before reaching out."
+
+def _topic_mudra(_q: str, _ctx: dict) -> str:
+    return "**PM Mudra Yojana**:\n\n• Collateral-free loan for non-corporate, non-farm small enterprises\n• Categories: Shishu (≤₹50K), Kishore (≤₹5L), Tarun (≤₹10L), Tarun Plus (₹10-20L)\n• Apply at any bank, RRB, or via udyamimitra.in\n• Documents: Aadhaar, PAN, business plan, quotations\n• Eligible: Indian citizen, viable business plan, no defaulter history\n\nProcessing: 7-30 days."
+
+def _topic_schemes(_q: str, ctx: dict) -> str:
+    state = _pick(ctx, "state", "your state")
+    return "**Top schemes you should evaluate**:\n\n" + "\n".join([f"• {s}" for s in _state_schemes(state)[:6]]) + "\n\nFor most, you'll need: Udyam registration, DPIIT recognition, GST, and a 2-3 page concept note."
+
+def _topic_license(_q: str, ctx: dict) -> str:
+    industry = _pick(ctx, "industry", "")
+    licenses_for = {
+        "FoodTech / F&B": "FSSAI License (mandatory) — Basic / State / Central based on turnover",
+        "Manufacturing": "Factory License + Pollution Control NOC + BIS (if applicable)",
+        "Construction & Labour": "Contract Labour License (CLRA) + BOCW + PF/ESI",
+        "Healthcare & Clinic": "Clinical Establishment License + Bio-medical Waste authorization",
+    }
+    specific = licenses_for.get(industry, "Trade License (Municipal) + Shops & Establishments")
+    return f"**Industry-specific licenses**:\n\n• {specific}\n• GST Registration (turnover/interstate trigger)\n• Udyam (MSME) — free\n• Trademark — protect brand\n• Import-Export Code (IEC) if you ever import/export\n\nGet these before starting operations to avoid back-dated penalties."
+
+def _topic_fssai(_q: str, _ctx: dict) -> str:
+    return "**FSSAI License** is mandatory for any food business:\n\n• **Basic** (turnover < ₹12L): ₹100/year — registration\n• **State** (₹12L-₹20Cr): ₹2,000-₹7,500/year\n• **Central** (>₹20Cr or import/export): ₹7,500/year\n\nApply on foscos.fssai.gov.in. Timeline: 30-60 days. Display the 14-digit FSSAI number on every product label."
+
+def _topic_labour(_q: str, _ctx: dict) -> str:
+    return "**Labour licenses & registrations**:\n\n• **Contract Labour License (CLRA)** — if you engage 20+ contract workers\n• **EPF** — mandatory once you have 20+ employees (contribution: 12% employer + 12% employee on wages up to ₹15K)\n• **ESI** — mandatory once you have 10+ employees with wages ≤ ₹21K (contribution: 3.25% employer + 0.75% employee)\n• **BOCW** — for construction workers\n• **Shop & Establishments** — state-level, mandatory for all commercial premises"
+
+def _topic_tm_class(_q: str, _ctx: dict) -> str:
+    return "**Trademark classes** are based on the Nice Classification (45 classes):\n\nFor a typical Indian startup, file in:\n• Your **product/service primary class** (e.g., Class 3 for cosmetics, Class 9 for software, Class 30 for food)\n• **Class 35** (advertising, business services) — covers e-commerce sale of any goods\n• Optionally **Class 42** (design & tech) if you have a tech component\n\nFee: ₹4,500/class for DPIIT startup, ₹9,000 otherwise. Multi-class filing is one form."
+
+def _topic_trademark(_q: str, _ctx: dict) -> str:
+    return "**Yes, you should register your trademark.** India follows first-to-file:\n\n• File within 7 days of incorporation\n• Use TM-A form on ipindia.gov.in\n• ₹4,500/class (DPIIT startup) — typically file 1-2 classes\n• Use ™ from day 1; ® after registration (12-24 months)\n• Search the existing TM database before filing\n\nAlso consider domain (.in & .com), social handles, and copyright on creative material."
+
+def _topic_patent(_q: str, _ctx: dict) -> str:
+    return "**Patent in India**:\n\n• Filed under the Patents Act 1970 at the Indian Patent Office\n• Eligibility: novelty + inventive step + industrial applicability\n• **Provisional patent**: ₹1,600 (startup) — locks priority date for 12 months\n• Complete specification within 12 months\n• Examination: request within 48 months; grants in 3-5 years on average\n• DPIIT startups get 80% rebate and expedited examination\n\nDo a prior art search on patents.google.com first."
+
+def _topic_year1(_q: str, _ctx: dict) -> str:
+    return "**Year-1 priorities (in order)**:\n\n1. **Customers > everything else** — get 50-100 paying users; ignore vanity metrics\n2. **Compliance from day 1** — GST + Udyam + DPIIT + accounting hygiene\n3. **Cash discipline** — 12-month runway minimum; track burn weekly\n4. **Team of 3-5 A-players** — equity-share early, document via ESOP pool\n5. **One channel, mastered** — don't spread thin across Instagram + Google + offline\n6. **Trademark + IP** — file within first month\n7. **Investor narrative** — start building it from month 6, even if not raising\n\nMost startups die from poor cash management, not bad ideas."
+
+def _topic_hire(_q: str, ctx: dict) -> str:
+    state = _pick(ctx, "state", "your state")
+    return f"**Hiring legally in India**:\n\n• **Offer letter + employment contract** with IP assignment + NDA\n• **PAN, Aadhaar, bank details** collected for payroll\n• **EPF** (mandatory once 20+ employees) — register on epfindia.gov.in\n• **ESI** (mandatory once 10+ employees with wages ≤ ₹21K)\n• **Professional Tax** ({state} specific deduction)\n• **TDS** deduction u/s 192 + Form 16 issuance\n• **Gratuity** payable after 5 years of service\n\nUse a payroll tool (RazorpayX Payroll, Zoho Payroll) from day 1."
+
+def _topic_scale(_q: str, _ctx: dict) -> str:
+    return "**Scaling playbook**:\n\n1. **Validate unit economics first** — LTV / CAC ≥ 3:1, gross margin > 50%\n2. **Document SOPs** — onboarding, sales, ops — before adding people\n3. **One new city / state at a time** — measure 90 days before next\n4. **Hire ahead of pain** — finance, ops, customer success roles\n5. **Compliance scales with team** — PF/ESI kick in at 10-20 employees\n6. **Capital plan** — raise 18 months of runway, not 6\n7. **Board governance** — quarterly board meetings, monthly investor updates"
+
+def _topic_default(_q: str, ctx: dict) -> str:
+    state = _pick(ctx, "state", "your state")
+    industry = _pick(ctx, "industry", "your industry")
+    stage = _pick(ctx, "stage", "your stage")
+    return f"That's a great question for a {stage}-stage {industry} startup in {state}.\n\nWhile I'd love to give a deep custom answer, here are general principles:\n\n• Most Indian founder questions trace back to 4 themes: **structure, compliance, IP, funding**\n• Always start with **Udyam + DPIIT + GST** — these unlock 80% of benefits\n• {_state_schemes(state)[0]} is likely the highest-leverage scheme for you\n• Set up monthly compliance calendar; missing dates costs more than doing them\n\nAsk a specific follow-up (GST? company structure? funding? compliance? trademark?) and I'll go deeper."
+
+
+def _has_any(q: str, words: tuple) -> bool:
+    return any(w in q for w in words)
+
+
+# (predicate, handler) — first match wins
+_COPILOT_TOPICS = [
+    (lambda q: "gst" in q and _has_any(q, ("miss", "penalty", "deadline")), _topic_gst_penalty),
+    (lambda q: "gst" in q, _topic_gst),
+    (lambda q: _has_any(q, ("structure", "llp", "pvt", "private limited")), _topic_structure),
+    (lambda q: _has_any(q, ("udyam", "msme")), _topic_udyam),
+    (lambda q: _has_any(q, ("startup india", "dpiit", "recognition")), _topic_startup_india),
+    (lambda q: "compliance" in q and _has_any(q, ("what", "which", "apply")), _topic_compliance_overview),
+    (lambda q: "mca" in q, _topic_mca),
+    (lambda q: "tax" in q and _has_any(q, ("file", "when")), _topic_tax_filing),
+    (lambda q: _has_any(q, ("fund", "raise", "investor")), _topic_funding),
+    (lambda q: "mudra" in q, _topic_mudra),
+    (lambda q: _has_any(q, ("scheme", "grant", "benefit", "eligibl")), _topic_schemes),
+    (lambda q: "fssai" in q, _topic_fssai),
+    (lambda q: "license" in q, _topic_license),
+    (lambda q: "labour" in q, _topic_labour),
+    (lambda q: "trademark" in q and "class" in q, _topic_tm_class),
+    (lambda q: _has_any(q, ("trademark", "brand")), _topic_trademark),
+    (lambda q: "patent" in q, _topic_patent),
+    (lambda q: _has_any(q, ("first year", "year 1", "focus")), _topic_year1),
+    (lambda q: _has_any(q, ("hire", "employee")), _topic_hire),
+    (lambda q: _has_any(q, ("expand", "scale", "grow")), _topic_scale),
+]
+
+
+def _prelude(ctx: dict) -> str:
     industry = _pick(ctx, "industry", "your industry")
     state = _pick(ctx, "state", "your state")
     stage = _pick(ctx, "stage", "your stage")
     turnover = _pick(ctx, "annual_turnover", "")
-    emp = _pick(ctx, "employee_count", 0)
-    ctype = _pick(ctx, "company_type", "Private Limited Company")
+    turn_part = f" with expected turnover {turnover}" if turnover else ""
+    return f"Based on your {industry} startup at {stage} stage in {state}{turn_part}:\n\n"
 
-    prelude = f"Based on your {industry} startup at {stage} stage in {state}" + (f" with expected turnover {turnover}" if turnover else "") + ":\n\n"
-    tail = "\n\n*Educational guidance only. Consult a qualified CA/CS before binding decisions.*"
 
-    if "gst" in q and ("miss" in q or "penalty" in q or "deadline" in q):
-        return prelude + "If you miss GST filing:\n• GSTR-1 / GSTR-3B late fee is ₹50/day (₹20/day for NIL returns), capped at ₹10,000.\n• Interest at 18% p.a. on unpaid tax.\n• 3 consecutive missed returns → GSTIN may be suspended.\n• Input Tax Credit (ITC) blocked till you file.\n\nSet calendar reminders for the 11th and 20th of every month." + tail
+_TAIL = "\n\n*Educational guidance only. Consult a qualified CA/CS before binding decisions.*"
 
-    if "gst" in q:
-        needs_gst = industry in ["D2C / E-commerce", "Beauty & Skincare", "Fashion & Apparel", "FoodTech / F&B", "Manufacturing", "Retail"] or "e-commerce" in q
-        verdict = "GST registration is **recommended** now" if needs_gst else "GST is **not yet mandatory**"
-        return prelude + f"{verdict}.\n\n• Goods threshold: ₹40 Lakh turnover\n• Services threshold: ₹20 Lakh\n• Mandatory from Day 1 if: interstate sales, e-commerce (Amazon/Flipkart/Nykaa), reverse-charge applicability.\n\nAlso consider **Udyam registration** (free) for MSME benefits and **Trademark** filing to protect your brand." + tail
 
-    if "structure" in q or "llp" in q or "pvt" in q or "private limited" in q:
-        return prelude + f"For your context, **Private Limited Company** is typically the right choice because:\n\n• Limited liability for founders\n• Required by VCs for equity rounds, ESOPs, SAFE/CCD instruments\n• DPIIT Startup India recognition possible → 3-year tax holiday u/s 80-IAC\n• Easier to add co-founders and investors via share transfer\n\nLLP is good if you have 2-4 partners, no VC plans, and prefer partnership flexibility." + tail
-
-    if "udyam" in q or "msme" in q:
-        return prelude + "**Udyam Registration** is the official MSME registration:\n\n• Free, online, takes <1 day on udyamregistration.gov.in\n• Required to access CGTMSE, PMEGP, Mudra, and 50+ MSME schemes\n• 50% subsidy on patent and trademark fees\n• Priority sector lending from banks\n• Protection under MSMED Act for delayed payments (45-day rule)\n\nApply within the first 30 days of incorporation." + tail
-
-    if "startup india" in q or "dpiit" in q or "recognition" in q:
-        return prelude + "**DPIIT Startup India Recognition**:\n\n• Apply free at startupindia.gov.in\n• Eligibility: Indian Pvt Ltd / LLP / Partnership < 10 years, turnover < ₹100 Cr, working on innovation/improvement\n• Benefits: 3-year income tax holiday (80-IAC), self-certification on labour & environment laws, ₹4,500 trademark fee (vs ₹9,000), faster patent examination, access to ₹50L Seed Fund\n• Timeline: 5-15 days after submitting incorporation cert + 1-2 page description of innovation" + tail
-
-    if "compliance" in q and ("what" in q or "which" in q or "apply" in q):
-        return prelude + "Your core compliance stack:\n\n**GST**: GSTR-1 (11th monthly), GSTR-3B (20th monthly), GSTR-9 (annual)\n**Income Tax**: ITR-6 (31 Oct), Form 3CD audit, Advance Tax (quarterly)\n**TDS**: Form 24Q/26Q (quarterly), Form 16/16A\n**MCA**: AOC-4 (financials), MGT-7 (annual return), DIR-3 KYC, board meetings\n" + ("**Labour**: PF & ESI monthly by 15th, PT state-specific\n" if emp and int(emp or 0) >= 10 else "") + f"**State**: Profession Tax, Shops & Establishments renewal, {state} specific filings" + tail
-
-    if "mca" in q:
-        return prelude + "**MCA annual filings** for a Pvt Ltd company:\n\n• **AOC-4** — financial statements within 30 days of AGM (~30 Oct)\n• **MGT-7** — annual return within 60 days of AGM (~29 Nov)\n• **DIR-3 KYC** — director KYC by 30 Sep every year\n• **DPT-3** — return of deposits (if applicable)\n• **MSME-1** — half-yearly report on dues to MSMEs\n\nPenalty: ₹100/day with no upper cap. Don't skip these." + tail
-
-    if "tax" in q and ("file" in q or "when" in q):
-        return prelude + "**Tax filing timeline**:\n\n• **Advance Tax**: 15 Jun (15%), 15 Sep (45%), 15 Dec (75%), 15 Mar (100%)\n• **ITR-6** for companies: 31 Oct of assessment year\n• **TDS** quarterly returns: 31 Jul / 31 Oct / 31 Jan / 31 May\n• **GST annual** GSTR-9: 31 Dec following financial year\n\nIf turnover > ₹1 Cr (or ₹10 Cr if 95% digital), **tax audit u/s 44AB** is mandatory." + tail
-
-    if "fund" in q or "raise" in q or "investor" in q:
-        return prelude + f"**Funding ladder for {stage} stage**:\n\n1. **Bootstrap / FFF** — friends, family, founder savings\n2. **Government grants** — {_state_schemes(state)[0]}, Startup India Seed Fund (₹20L grant + ₹50L convertible)\n3. **Loans** — Mudra (up to ₹20L), CGTMSE (up to ₹5 Cr, no collateral)\n4. **Angels** — Indian Angel Network, LetsVenture, AngelList India — typical cheque ₹25L-₹2 Cr\n5. **Pre-seed/Seed VCs** — Better Capital, AntlerIndia, SmileGroup, Blume — ₹1-5 Cr\n\nPrepare a 12-slide deck, 3-year financial model, and unit economics before reaching out." + tail
-
-    if "mudra" in q:
-        return prelude + "**PM Mudra Yojana**:\n\n• Collateral-free loan for non-corporate, non-farm small enterprises\n• Categories: Shishu (≤₹50K), Kishore (≤₹5L), Tarun (≤₹10L), Tarun Plus (₹10-20L)\n• Apply at any bank, RRB, or via udyamimitra.in\n• Documents: Aadhaar, PAN, business plan, quotations\n• Eligible: Indian citizen, viable business plan, no defaulter history\n\nProcessing: 7-30 days." + tail
-
-    if "scheme" in q or "grant" in q or "benefit" in q or "eligibl" in q:
-        return prelude + "**Top schemes you should evaluate**:\n\n" + "\n".join([f"• {s}" for s in _state_schemes(state)[:6]]) + "\n\nFor most, you'll need: Udyam registration, DPIIT recognition, GST, and a 2-3 page concept note." + tail
-
-    if "license" in q:
-        licenses_for = {
-            "FoodTech / F&B": "FSSAI License (mandatory) — Basic / State / Central based on turnover",
-            "Manufacturing": "Factory License + Pollution Control NOC + BIS (if applicable)",
-            "Construction & Labour": "Contract Labour License (CLRA) + BOCW + PF/ESI",
-            "Healthcare & Clinic": "Clinical Establishment License + Bio-medical Waste authorization",
-        }
-        specific = licenses_for.get(industry, "Trade License (Municipal) + Shops & Establishments")
-        return prelude + f"**Industry-specific licenses**:\n\n• {specific}\n• GST Registration (turnover/interstate trigger)\n• Udyam (MSME) — free\n• Trademark — protect brand\n• Import-Export Code (IEC) if you ever import/export\n\nGet these before starting operations to avoid back-dated penalties." + tail
-
-    if "fssai" in q:
-        return prelude + "**FSSAI License** is mandatory for any food business:\n\n• **Basic** (turnover < ₹12L): ₹100/year — registration\n• **State** (₹12L-₹20Cr): ₹2,000-₹7,500/year\n• **Central** (>₹20Cr or import/export): ₹7,500/year\n\nApply on foscos.fssai.gov.in. Timeline: 30-60 days. Display the 14-digit FSSAI number on every product label." + tail
-
-    if "labour" in q:
-        return prelude + "**Labour licenses & registrations**:\n\n• **Contract Labour License (CLRA)** — if you engage 20+ contract workers\n• **EPF** — mandatory once you have 20+ employees (contribution: 12% employer + 12% employee on wages up to ₹15K)\n• **ESI** — mandatory once you have 10+ employees with wages ≤ ₹21K (contribution: 3.25% employer + 0.75% employee)\n• **BOCW** — for construction workers\n• **Shop & Establishments** — state-level, mandatory for all commercial premises" + tail
-
-    if "trademark" in q and "class" in q:
-        return prelude + "**Trademark classes** are based on the Nice Classification (45 classes):\n\nFor a typical Indian startup, file in:\n• Your **product/service primary class** (e.g., Class 3 for cosmetics, Class 9 for software, Class 30 for food)\n• **Class 35** (advertising, business services) — covers e-commerce sale of any goods\n• Optionally **Class 42** (design & tech) if you have a tech component\n\nFee: ₹4,500/class for DPIIT startup, ₹9,000 otherwise. Multi-class filing is one form." + tail
-
-    if "trademark" in q or "brand" in q:
-        return prelude + f"**Yes, you should register your trademark.** India follows first-to-file:\n\n• File within 7 days of incorporation\n• Use TM-A form on ipindia.gov.in\n• ₹4,500/class (DPIIT startup) — typically file 1-2 classes\n• Use ™ from day 1; ® after registration (12-24 months)\n• Search the existing TM database before filing\n\nAlso consider domain (.in & .com), social handles, and copyright on creative material." + tail
-
-    if "patent" in q:
-        return prelude + "**Patent in India**:\n\n• Filed under the Patents Act 1970 at the Indian Patent Office\n• Eligibility: novelty + inventive step + industrial applicability\n• **Provisional patent**: ₹1,600 (startup) — locks priority date for 12 months\n• Complete specification within 12 months\n• Examination: request within 48 months; grants in 3-5 years on average\n• DPIIT startups get 80% rebate and expedited examination\n\nDo a prior art search on patents.google.com first." + tail
-
-    if "first year" in q or "year 1" in q or "focus" in q:
-        return prelude + "**Year-1 priorities (in order)**:\n\n1. **Customers > everything else** — get 50-100 paying users; ignore vanity metrics\n2. **Compliance from day 1** — GST + Udyam + DPIIT + accounting hygiene\n3. **Cash discipline** — 12-month runway minimum; track burn weekly\n4. **Team of 3-5 A-players** — equity-share early, document via ESOP pool\n5. **One channel, mastered** — don't spread thin across Instagram + Google + offline\n6. **Trademark + IP** — file within first month\n7. **Investor narrative** — start building it from month 6, even if not raising\n\nMost startups die from poor cash management, not bad ideas." + tail
-
-    if "hire" in q or "employee" in q:
-        return prelude + "**Hiring legally in India**:\n\n• **Offer letter + employment contract** with IP assignment + NDA\n• **PAN, Aadhaar, bank details** collected for payroll\n• **EPF** (mandatory once 20+ employees) — register on epfindia.gov.in\n• **ESI** (mandatory once 10+ employees with wages ≤ ₹21K)\n• **Professional Tax** ({state} specific deduction)\n• **TDS** deduction u/s 192 + Form 16 issuance\n• **Gratuity** payable after 5 years of service\n\nUse a payroll tool (RazorpayX Payroll, Zoho Payroll) from day 1." + tail
-
-    if "expand" in q or "scale" in q or "grow" in q:
-        return prelude + "**Scaling playbook**:\n\n1. **Validate unit economics first** — LTV / CAC ≥ 3:1, gross margin > 50%\n2. **Document SOPs** — onboarding, sales, ops — before adding people\n3. **One new city / state at a time** — measure 90 days before next\n4. **Hire ahead of pain** — finance, ops, customer success roles\n5. **Compliance scales with team** — PF/ESI kick in at 10-20 employees\n6. **Capital plan** — raise 18 months of runway, not 6\n7. **Board governance** — quarterly board meetings, monthly investor updates" + tail
-
-    # Fallback generic
-    return prelude + f"That's a great question for a {stage}-stage {industry} startup in {state}.\n\nWhile I'd love to give a deep custom answer, here are general principles:\n\n• Most Indian founder questions trace back to 4 themes: **structure, compliance, IP, funding**\n• Always start with **Udyam + DPIIT + GST** — these unlock 80% of benefits\n• {_state_schemes(state)[0]} is likely the highest-leverage scheme for you\n• Set up monthly compliance calendar; missing dates costs more than doing them\n\nAsk a specific follow-up (GST? company structure? funding? compliance? trademark?) and I'll go deeper." + tail
+def copilot_demo(question: str, ctx: dict) -> str:
+    q = (question or "").lower()
+    body = next((h(q, ctx) for pred, h in _COPILOT_TOPICS if pred(q)), _topic_default(q, ctx))
+    return _prelude(ctx) + body + _TAIL

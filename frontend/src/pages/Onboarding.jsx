@@ -27,7 +27,7 @@ export default function Onboarding() {
   const { setProfile } = useProfile();
   const nav = useNavigate();
 
-  useEffect(() => { api.get("/meta/all").then(r => setMeta(r.data)); }, []);
+  useEffect(() => { api.get("/meta/all").then(r => setMeta(r.data)); }, [setMeta]);
 
   const submit = async (e) => {
     e.preventDefault();

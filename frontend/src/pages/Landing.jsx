@@ -42,7 +42,7 @@ export default function Landing() {
 
   useEffect(() => {
     api.get("/demo/startups").then(r => setDemos(r.data.startups)).catch(() => {});
-  }, []);
+  }, [setDemos]);
 
   const loadDemo = (d) => {
     setProfile({ ...d, is_demo: true });

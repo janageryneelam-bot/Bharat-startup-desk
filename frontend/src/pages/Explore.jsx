@@ -20,7 +20,7 @@ export default function Explore() {
   const [result, setResult] = useState(null);
   const [isDemo, setIsDemo] = useState(false);
 
-  useEffect(() => { api.get("/meta/all").then(r => setMeta(r.data)).catch(() => {}); }, []);
+  useEffect(() => { api.get("/meta/all").then(r => setMeta(r.data)).catch(() => {}); }, [setMeta]);
 
   const submit = async (e) => {
     e.preventDefault();

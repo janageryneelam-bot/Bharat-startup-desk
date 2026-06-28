@@ -38,7 +38,7 @@ export default function Overview() {
       api.post(`/profiles/${profile.id}/plan`).then(r => r.data).catch(() => null),
       api.get(`/compliance/${profile.id}`).then(r => r.data).catch(() => null),
     ]).then(([p, c]) => { setPlan(p); setComp(c); setLoading(false); });
-  }, [profile]);
+  }, [profile, setPlan, setComp, setLoading]);
 
   if (loading) return <div className="grid place-items-center py-20 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mr-2" /> Generating your personalised plan…</div>;
 

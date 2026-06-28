@@ -14,7 +14,7 @@ const segs = [
 export default function Roadmap() {
   const { profile } = useProfile();
   const [plan, setPlan] = useState(null);
-  useEffect(() => { if (profile?.id) api.post(`/profiles/${profile.id}/plan`).then(r => setPlan(r.data)); }, [profile]);
+  useEffect(() => { if (profile?.id) api.post(`/profiles/${profile.id}/plan`).then(r => setPlan(r.data)); }, [profile, setPlan]);
 
   if (!plan) return <div className="grid place-items-center py-20 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Generating roadmap…</div>;
 
