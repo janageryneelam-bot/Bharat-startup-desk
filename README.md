@@ -81,6 +81,27 @@ Provides guidance for existing businesses including:
 - Next growth steps
 
 ---
+# 📷 Screenshots
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/2321a1fa-3c53-4dc6-a0c1-373f41a29352" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/af596c94-3a7d-4054-a243-1468f5c4e4c0" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/24042771-fdfc-486c-81bc-884e3be38d8a" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d8f94809-83ab-47e2-ab5b-e8ac3f7c9c63" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/9c098b5c-dd8c-4415-b080-259c05de1434" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/30244da1-61fd-412d-83b5-d6e5d72271e8" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3fd9978c-43a7-496e-b86e-840d6b612792" />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # 🛠 Tech Stack
